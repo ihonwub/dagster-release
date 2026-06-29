@@ -9,9 +9,8 @@ metadata:
   region: ${AWS_REGION}
   version: "1.33"
   tags:
-    karpenter.sh/discovery: ${EKS_CLUSTER_NAME}
-    created-by: eks-workshop-v2
-    env: ${EKS_CLUSTER_NAME}
+    created-by: dagster-platform
+    env: dev
 iam:
   withOIDC: true
 vpc:
@@ -32,10 +31,40 @@ managedNodeGroups:
     labels:
       workshop-default: "yes"
 addons:
+  # Core networking
   - name: vpc-cni
-    version: 1.19.2
-    configurationValues: '{"env":{"ENABLE_PREFIX_DELEGATION":"true","ENABLE_POD_ENI":"true","POD_SECURITY_GROUP_ENFORCING_MODE":"standard"},"enableNetworkPolicy":"true","nodeAgent":{"enablePolicyEventLogs":"true"}}'
+    version: latest
+    configurationValues: '{"env":{"ENABLE_PREFIX_DELEGATION":"true","ENABLE_POD_ENI":"true","POD_SECURITY_GROUP_ENFORCING_MODE":"standard"},"enableNetworkPolicy":"true"}'
     resolveConflicts: overwrite
+
+  - name: coredns
+    version: latest
+    resolveConflicts: overwrite
+
+  - name: kube-proxy
+    version: latest
+    resolveConflicts: overwrite
+
+  # EBS CSI driver — REQUIRED on EKS 1.23+.
+  # The in-tree aws-ebs provisioner is removed; without this addon any PVC
+  # (bundled Postgres, etc.) will stay Pending indefinitely.
+  # wellKnownPolicies auto-creates the IRSA role — no manual aws iam needed.
+  - name: aws-ebs-csi-driver
+    version: latest
+    resolveConflicts: overwrite
+    wellKnownPolicies:
+      ebsCSIController: true
+
+  # Pod Identity Agent — modern IRSA alternative; keep alongside withOIDC: true.
+  - name: eks-pod-identity-agent
+    version: latest
+    resolveConflicts: overwrite
+
+  # Metrics Server — required for HPA and `kubectl top`.
+  - name: metrics-server
+    version: latest
+    resolveConflicts: overwrite
+
 accessConfig:
   authenticationMode: API
   bootstrapClusterCreatorAdminPermissions: true
