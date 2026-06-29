@@ -34,13 +34,8 @@ managedNodeGroups:
 addons:
   - name: vpc-cni
     version: 1.19.2
-    configurationValues: '{"env":{"ENABLE_PREFIX_DELEGATION":"true", "ENABLE_POD_ENI":"true", "POD_SECURITY_GROUP_ENFORCING_MODE":"standard"},"enableNetworkPolicy": "true", "nodeAgent": {"enablePolicyEventLogs": "true"}}'
+    configurationValues: '{"env":{"ENABLE_PREFIX_DELEGATION":"true","ENABLE_POD_ENI":"true","POD_SECURITY_GROUP_ENFORCING_MODE":"standard"},"enableNetworkPolicy":"true","nodeAgent":{"enablePolicyEventLogs":"true"}}'
     resolveConflicts: overwrite
-remoteNetworkConfig:
-  remoteNodeNetworks:
-    - cidrs: ["10.52.0.0/16"]
-  remotePodNetworks:
-    - cidrs: ["10.53.0.0/16"]
 accessConfig:
   authenticationMode: API
   bootstrapClusterCreatorAdminPermissions: true

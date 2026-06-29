@@ -5,10 +5,10 @@ module: signals_pipeline.definitions       # python module exposing Definitions(
 port: 4001                                 # gRPC port the code server listens on
 image:
   repository: 381491911327.dkr.ecr.us-west-2.amazonaws.com/dagster-signals
-  tag: "git-9f3a1c0"                       # IMMUTABLE -- never 'latest' (CI rejects it)
+  tag: "0.1.0"                             # IMMUTABLE -- never 'latest' (CI rejects it)
   pullPolicy: Always
-envConfigMaps:                             # optional
-  - signals-env
+# envConfigMaps:                           # optional -- re-enable once a signals-env
+#   - signals-env                          #   ConfigMap exists in the dagster-signals ns
 resources:                                 # optional (chart/instance defaults otherwise)
   requests: { cpu: "500m", memory: "1Gi" }
   limits:   { cpu: "2",    memory: "4Gi" }

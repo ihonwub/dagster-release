@@ -15,8 +15,11 @@ argocdNamespace: argocd                           # where the child Application 
 destinationServer: https://kubernetes.default.svc # this Argo manages its own cluster
 
 # Per-app on/off. Flip to false to keep an app out of this environment.
-externalSecrets:      { enabled: true }
-karpenter:            { enabled: true }
+# DEMO bring-up: external-secrets + karpenter are OFF. The workshop node group
+# already has capacity (no karpenter needed) and we use the bundled Postgres
+# instead of RDS-via-ESO. Re-enable both for a real environment.
+externalSecrets:      { enabled: false }
+karpenter:            { enabled: false }
 reloader:             { enabled: true }
 dagsterInstance:      { enabled: true }
 dagsterCodeLocations: { enabled: true }

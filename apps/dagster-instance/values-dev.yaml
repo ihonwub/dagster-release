@@ -43,4 +43,7 @@ dagster:
       reloader.stakater.com/auto: "true"      # roll the daemon when workspace changes
 
   postgresql:
-    enabled: false              # use RDS; wire host/creds here (dev RDS instance)
+    # DEMO bring-up: use the chart's BUNDLED Postgres (a pod in-cluster) so we
+    # don't need RDS + External Secrets to see Dagster run end-to-end.
+    # For a real environment set this to false and wire the RDS host/creds.
+    enabled: true
