@@ -1,0 +1,14 @@
+# Owned by @org/ds-signals (see /CODEOWNERS). The ONLY file this team edits.
+# Adding a DAG = new code in the image + a new immutable tag here.
+name: signals                              # -> namespace dagster-signals, location_name "signals"
+module: signals_pipeline.definitions       # python module exposing Definitions(...)
+port: 4001                                 # gRPC port the code server listens on
+image:
+  repository: 381491911327.dkr.ecr.us-west-2.amazonaws.com/dagster-signals
+  tag: "git-9f3a1c0"                       # IMMUTABLE -- never 'latest' (CI rejects it)
+  pullPolicy: Always
+envConfigMaps:                             # optional
+  - signals-env
+resources:                                 # optional (chart/instance defaults otherwise)
+  requests: { cpu: "500m", memory: "1Gi" }
+  limits:   { cpu: "2",    memory: "4Gi" }

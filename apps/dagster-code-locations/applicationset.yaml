@@ -1,0 +1,105 @@
+# =============================================================================
+# TENANT ApplicationSet  --  the FAN-OUT half of self-service code locations.
+# -----------------------------------------------------------------------------
+# Deployed by the root ApplicationSet (apps/dagster-code-locations/app-config.yaml),
+# this object reads every charts/dagster-workspace/locations/*.yaml and produces
+# ONE Argo Application per team. Each Application installs Repo B's wrapper chart
+# (`dagster-code-location`), which in turn installs Dagster's OFFICIAL
+# `dagster-user-deployments` chart -> the team's gRPC code-server POD.
+#
+# REMEMBER the two halves (both read the SAME locations/*.yaml files):
+#   FAN-OUT (here)     -> one POD per team           (Argo git "files" generator)
+#   FAN-IN (workspace) -> one REGISTRY entry per team (Helm .Files.Glob)
+#
+# WHY one Application PER team?
+#   - Independent rollback per team.
+#   - A malformed locations/<x>.yaml breaks ONLY that team's App. Blast radius = 1.
+#
+# WHY the wrapper chart (Repo B) instead of the official chart inline?
+#   - The version is pinned/tested in ONE place.
+#   - The per-location NetworkPolicy travels WITH the deployment (same App that
+#     creates the namespace), so there is no namespace/NetworkPolicy race.
+#   - The deployment is named `dagster-loc-<name>` so its Service DNS matches the
+#     host the workspace registry expects -- see the worked example in
+#     charts/dagster-workspace/templates/workspace-configmap.yaml.
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dagster-code-locations
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]    # fail fast if a team file omits a required key
+  generators:
+    - git:
+        repoURL: https://github.com/org/mde-gitops-manifests.git   # PIN to the real repo URL
+        revision: main
+        files:
+          # Each matched team file is parsed; its keys become the params below.
+          - path: "apps/dagster-workspace/locations/*.yaml"
+  template:
+    metadata:
+      name: "dagster-loc-{{ .name }}"
+    spec:
+      project: data-platform
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "dagster-{{ .name }}"       # per-team namespace -> isolation
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [CreateNamespace=true, ServerSideApply=true]
+      source:
+        # Repo B's published wrapper chart. # PUBLISH this chart to your registry
+        # (OCI/ECR) before bring-up; until then this reference cannot resolve.
+        repoURL: 381491911327.dkr.ecr.us-west-2.amazonaws.com   # OCI registry host
+        chart: dagster-code-location
+        targetRevision: "0.1.0"                # PIN to the published wrapper-chart version
+        helm:
+          # Values handed to the wrapper chart. The wrapper passes
+          # `dagster-user-deployments.*` straight through to the official subchart,
+          # and consumes `networkPolicy.*` in its own template.
+          #
+          # NOTE on Helm + subcharts: a wrapper chart cannot TEMPLATE its
+          # subchart's values, so the friendly "team file -> deployments[]"
+          # mapping is done HERE (by the ApplicationSet's Go template engine),
+          # not inside the wrapper.
+          valuesObject:
+            dagster-user-deployments:
+              serviceAccount:
+                create: true
+                name: dagster-loc-{{ .name }}
+                annotations:
+                  # IRSA: scope each location to its own IAM role (platform-owned prefix).
+                  eks.amazonaws.com/role-arn: arn:aws:iam::381491911327:role/dagster-loc-{{ .name }}
+              deployments:
+                # name = dagster-loc-<name> so the Service DNS the official chart
+                # creates matches the host the workspace registry derives.
+                - name: dagster-loc-{{ .name }}
+                  image:
+                    repository: {{ .image.repository }}
+                    tag: "{{ .image.tag }}"
+                    pullPolicy: {{ .image.pullPolicy }}
+                  dagsterApiGrpcArgs:
+                    - "--python-module"
+                    - {{ .module }}
+                  port: {{ .port }}
+                  # Make launched run pods reuse the code server's config/env.
+                  includeConfigInLaunchedRuns:
+                    enabled: true
+                  {{- if .envConfigMaps }}
+                  envConfigMaps:
+                    {{- range .envConfigMaps }}
+                    - name: {{ . }}
+                    {{- end }}
+                  {{- end }}
+                  {{- if .resources }}
+                  resources:
+                    {{- .resources | toYaml | nindent 20 }}
+                  {{- end }}
+            # Inputs the wrapper's NetworkPolicy template needs (see Repo B).
+            networkPolicy:
+              enabled: true
+              locationName: {{ .name }}
+              port: {{ .port }}
+              instanceNamespace: dagster         # control-plane namespace allowed to reach gRPC

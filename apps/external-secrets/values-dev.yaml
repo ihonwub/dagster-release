@@ -1,0 +1,8 @@
+# DEV values for External Secrets. Values nest under the subchart name
+# `external-secrets:`.
+external-secrets:
+  installCRDs: true
+  # IRSA role the operator assumes to read from AWS Secrets Manager / SSM.
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::381491911327:role/external-secrets-dev   # PIN per env

@@ -1,0 +1,11 @@
+# Wrapper chart for External Secrets Operator (ESO). Depends on the upstream
+# chart; our per-env values supply the AWS IRSA role used to read secrets.
+apiVersion: v2
+name: external-secrets
+description: Wrapper around the External Secrets Operator chart.
+type: application
+version: 0.1.0
+dependencies:
+  - name: external-secrets
+    version: "0.10.0"                         # PIN
+    repository: https://charts.external-secrets.io

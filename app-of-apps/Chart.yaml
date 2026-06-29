@@ -1,0 +1,20 @@
+# =============================================================================
+# THE "ARGOCD APPLICATION" HELM CHART  (the middle layer of app-of-apps).
+# -----------------------------------------------------------------------------
+# This chart contains NO workloads. Its only templates are ArgoCD `Application`
+# resources -- one per entry in `applications:` in the values file. You can see
+# exactly what it produces with:
+#   helm template app-of-apps app-of-apps -f app-of-apps/values-dev.yaml
+#
+# Each Application it renders points at an ACTUAL workload chart -- either one of
+# ours under apps/, or a remote chart (istio, external-secrets, reloader).
+#
+# Per-environment differences (which apps, which versions, which per-chart values
+# file) live entirely in values-dev.yaml / values-preprod.yaml. The bootstrap
+# ApplicationSet picks the right one based on the cluster's `env` label.
+# =============================================================================
+apiVersion: v2
+name: app-of-apps
+description: Renders one ArgoCD Application per entry in .Values.applications.
+type: application
+version: 0.1.0

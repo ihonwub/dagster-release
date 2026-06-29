@@ -1,0 +1,11 @@
+# Wrapper chart for Stakater Reloader. Like apps/dagster-instance, it just
+# depends on the upstream chart and layers our values (values-dev/values-preprod).
+apiVersion: v2
+name: reloader
+description: Wrapper around the Stakater Reloader chart.
+type: application
+version: 0.1.0
+dependencies:
+  - name: reloader
+    version: "2.2.12"                         # PIN (chart version; app version v1.4.17)
+    repository: https://stakater.github.io/stakater-charts

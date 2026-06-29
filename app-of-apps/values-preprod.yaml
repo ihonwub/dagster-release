@@ -1,0 +1,18 @@
+# =============================================================================
+# PREPROD cluster settings for the app-of-apps chart. Same shape as
+# values-dev.yaml; `env: preprod` makes every app load its values-preprod.yaml.
+# =============================================================================
+
+env: preprod
+repoURL: https://github.com/org/mde-gitops-manifests.git   # PIN: this repo
+targetRevision: main
+project: data-platform
+argocdNamespace: argocd
+destinationServer: https://kubernetes.default.svc
+
+externalSecrets:      { enabled: true }
+karpenter:            { enabled: true }
+reloader:             { enabled: true }
+dagsterInstance:      { enabled: true }
+dagsterCodeLocations: { enabled: true }
+dagsterWorkspace:     { enabled: true }

@@ -1,0 +1,32 @@
+# =============================================================================
+# PREPROD control-plane values.
+#
+# Same shape as values-dev.yaml (see that file for the "why is everything under
+# `dagster:`" explanation). Only the ENV-SPECIFIC bits should differ here —
+# typically: RDS host/creds, resource sizing, replica counts.
+# =============================================================================
+dagster:
+
+  runLauncher:
+    type: K8sRunLauncher
+    config:
+      k8sRunLauncher:
+        loadInclusterConfig: true
+
+  dagster-user-deployments:
+    enabled: true
+    enableSubchart: false
+    deployments: []
+
+  dagsterWebserver:
+    workspace:
+      externalConfigmap: dagster-workspace
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+  dagsterDaemon:
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+  postgresql:
+    enabled: false              # use RDS; wire the PREPROD host/creds here

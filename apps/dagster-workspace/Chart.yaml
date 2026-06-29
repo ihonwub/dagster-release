@@ -1,0 +1,11 @@
+apiVersion: v2
+name: dagster-workspace
+description: >-
+  Generates the Dagster instance's WORKSPACE (its registry of code locations)
+  from locations/*.yaml, plus one NetworkPolicy per location. This is the only
+  custom chart in the repo -- it exists because no Dagster chart can aggregate
+  per-team files into a single workspace. The code-location pods themselves are
+  deployed separately by the official dagster-user-deployments chart via the
+  ApplicationSet in apps/code-locations-appset.yaml.
+type: application
+version: 0.1.0

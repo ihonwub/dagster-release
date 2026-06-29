@@ -1,0 +1,31 @@
+# =============================================================================
+# CONTROL-PLANE WRAPPER CHART
+# -----------------------------------------------------------------------------
+# This chart installs the Dagster CONTROL PLANE (webserver + daemon + run
+# launcher) and NOTHING else. It does it by depending on Dagster's OFFICIAL
+# `dagster` chart as a subchart, then layering our own values on top
+# (values-dev.yaml / values-preprod.yaml).
+#
+# Why a wrapper chart (instead of Argo's multi-source "$values" trick)?
+#   - We can render it locally:  helm template charts/dagster-instance -f values-dev.yaml
+#   - The upstream version is PINNED here, in Git, next to our values.
+#   - We can add our own extra resources later (secrets wiring, etc.).
+#
+# IMPORTANT: because `dagster` is a SUBCHART here, every value that the upstream
+# chart expects at its top level must be nested under a `dagster:` key in our
+# values files. (And the upstream's own subchart becomes
+# `dagster.dagster-user-deployments`.) See values-dev.yaml.
+# =============================================================================
+apiVersion: v2
+name: dagster-instance
+description: >-
+  Wrapper around the official Dagster chart that installs ONLY the control plane
+  (webserver, daemon, run launcher). User code is deployed separately by the
+  tenant ApplicationSet (manifests/code-locations-appset.yaml).
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: dagster
+    version: "1.13.10" # PIN to your tested version
+    repository: https://dagster-io.github.io/helm

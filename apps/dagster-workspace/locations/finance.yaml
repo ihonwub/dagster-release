@@ -1,0 +1,10 @@
+# Owned by @org/ds-finance (see /CODEOWNERS).
+name: finance
+module: finance_pipeline.definitions
+port: 4002
+image:
+  repository: 381491911327.dkr.ecr.us-west-2.amazonaws.com/dagster-finance
+  tag: "git-4b1e7a2"
+  pullPolicy: Always
+envConfigMaps:
+  - finance-env

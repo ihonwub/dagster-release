@@ -1,0 +1,21 @@
+name: validate-code-locations
+on:
+  pull_request:
+    paths:
+      - "apps/dagster-workspace/locations/**"
+      - "apps/dagster-workspace/templates/**"
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint location YAML
+        run: pipx run yamllint -d relaxed apps/dagster-workspace/locations/
+      - name: Reject mutable image tags
+        run: |
+          if grep -REn 'tag:[[:space:]]*["'"'"']?latest' apps/dagster-workspace/locations/; then
+            echo "::error::image tags must be immutable (git-<sha>), not 'latest'"; exit 1
+          fi
+      - uses: azure/setup-helm@v4
+      - name: Render workspace chart (fails on any malformed location file)
+        run: helm template apps/dagster-workspace > /dev/null

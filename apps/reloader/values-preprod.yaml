@@ -1,0 +1,4 @@
+# PREPROD values for Reloader. See values-dev.yaml for the double-nesting note.
+reloader:
+  reloader:
+    watchGlobally: true

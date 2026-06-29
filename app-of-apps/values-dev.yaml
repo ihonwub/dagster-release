@@ -1,0 +1,23 @@
+# =============================================================================
+# DEV cluster settings for the app-of-apps chart.
+#
+# With one explicit template per app under templates/, this file is small: it
+# just carries shared settings + per-app on/off switches. The bootstrap
+# ApplicationSet selects THIS file (vs values-preprod.yaml) using the cluster's
+# `env` label.
+# =============================================================================
+
+env: dev                                          # -> each app loads values-dev.yaml from its chart
+repoURL: https://github.com/org/mde-gitops-manifests.git   # PIN: this repo
+targetRevision: main
+project: data-platform
+argocdNamespace: argocd                           # where the child Application objects live
+destinationServer: https://kubernetes.default.svc # this Argo manages its own cluster
+
+# Per-app on/off. Flip to false to keep an app out of this environment.
+externalSecrets:      { enabled: true }
+karpenter:            { enabled: true }
+reloader:             { enabled: true }
+dagsterInstance:      { enabled: true }
+dagsterCodeLocations: { enabled: true }
+dagsterWorkspace:     { enabled: true }

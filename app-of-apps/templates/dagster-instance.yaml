@@ -1,0 +1,31 @@
+{{- /*
+  ArgoCD Application for the Dagster CONTROL PLANE (webserver + daemon + run
+  launcher). Wave 1: after reloader, before user code. Points at the wrapper
+  chart apps/dagster-instance, which depends on the official `dagster` chart.
+*/ -}}
+{{- if .Values.dagsterInstance.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dagster-instance
+  namespace: {{ .Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.project }}
+  destination:
+    server: {{ .Values.destinationServer }}
+    namespace: dagster
+  source:
+    repoURL: {{ .Values.repoURL }}
+    targetRevision: {{ .Values.targetRevision }}
+    path: apps/dagster-instance
+    helm:
+      valueFiles:
+        - values-{{ .Values.env }}.yaml
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+{{- end }}

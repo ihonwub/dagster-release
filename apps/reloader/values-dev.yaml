@@ -1,0 +1,7 @@
+# DEV values for Reloader.
+# Reminder: the upstream chart is a SUBCHART named `reloader`, so its values nest
+# under `reloader:`. The upstream chart ALSO has its own top-level `reloader:`
+# key -- hence the (correct, if odd-looking) double nesting below.
+reloader:                       # <- subchart name
+  reloader:                     # <- the upstream chart's own key
+    watchGlobally: true         # watch ConfigMaps/Secrets in all namespaces

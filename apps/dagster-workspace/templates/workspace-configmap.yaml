@@ -1,0 +1,83 @@
+{{- /*
+==============================================================================
+ THE WORKSPACE GENERATOR  (the heart of self-service)
+==============================================================================
+
+ WHAT a workspace is
+ -------------------
+ The Dagster webserver and daemon both read one file, `workspace.yaml`. It is
+ the instance's PHONE BOOK of code locations: for each location, a gRPC address
+ (host + port) and a name. The webserver shows a location in the UI only if it
+ is listed here; the daemon runs a location's schedules/sensors only if it is
+ listed here. If a location is missing from the workspace, it effectively does
+ not exist to the instance -- even if its pod is running.
+
+ WHY we generate it (instead of hand-maintaining a list)
+ -------------------------------------------------------
+ In the stock Helm chart, this list lives in the instance's values
+ (dagster-user-deployments.deployments). Every new location = an edit to the
+ platform's release = platform involvement. That is exactly the gap we are
+ closing.
+
+ The insight: a location's gRPC address is DERIVABLE from its name by
+ convention. Kubernetes gives every Service a stable DNS name:
+     <service>.<namespace>.svc.cluster.local
+ We name the Service `dagster-loc-<name>` and put it in namespace
+ `dagster-<name>`. So host, port, and location_name ALL fall out of two fields
+ in the team's file (name + port). Nothing here requires a human decision.
+
+ Because the workspace is a PURE FUNCTION of "which files exist in locations/",
+ a machine can build it with zero judgement. Adding a location stops being a
+ platform ticket and becomes: drop a file. That is the whole trick.
+
+ HOW the Helm bit works
+ ----------------------
+   .Files.Glob "locations/*.yaml"  -> map of {path: bytes} for every team file
+                                      bundled in THIS chart's directory.
+   .Files.Get  $path               -> that file's contents as a string.
+   ... | fromYaml                  -> parse the string into a dict we can read
+                                      ($loc.name, $loc.port, ...).
+ (`.Files.Glob` can only see files INSIDE this chart's dir -- that is why the
+  locations/ folder lives here AND why the ApplicationSet reads the same path.)
+
+ WORKED EXAMPLE
+ --------------
+ Given locations/signals.yaml containing:
+     name: signals
+     port: 4001
+ ...this template emits the workspace entry:
+     - grpc_server:
+         host: dagster-loc-signals.dagster-signals.svc.cluster.local
+         port: 4001
+         location_name: signals
+ Add locations/finance.yaml (name: finance, port: 4002) and the SAME render now
+ also emits the finance entry -- no edit to this template, ever.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # The instance points at this exact name (see platform values:
+  # dagsterWebserver.workspace.externalConfigmap: dagster-workspace).
+  name: dagster-workspace
+  # Lives in the INSTANCE namespace -- that is where webserver/daemon mount it,
+  # even though the code-location pods live in their own per-team namespaces.
+  namespace: {{ .Values.instanceNamespace }}
+  annotations:
+    # Stakater Reloader watches this ConfigMap and rolls the webserver/daemon
+    # when its content changes, so new locations appear without manual restarts.
+    reloader.stakater.com/match: "true"
+data:
+  workspace.yaml: |
+    load_from:
+    {{- /* Loop every team file. $ is the root context inside range. */}}
+    {{- range $path, $bytes := .Files.Glob "locations/*.yaml" }}
+    {{- $loc := $.Files.Get $path | fromYaml }}
+      # ----- {{ $loc.name }} (from {{ base $path }}) -----
+      - grpc_server:
+          # Stable in-cluster DNS of this location's Service. Convention only:
+          #   service  = dagster-loc-<name>   (set by the official chart)
+          #   namespace = <prefix>-<name>     (ApplicationSet destination)
+          host: dagster-loc-{{ $loc.name }}.{{ $.Values.namespacePrefix }}-{{ $loc.name }}.svc.cluster.local
+          port: {{ $loc.port }}
+          location_name: {{ $loc.name }}
+    {{- end }}

@@ -1,0 +1,8 @@
+# PREPROD values for Karpenter.
+karpenter:
+  settings:
+    clusterName: mde-eks-preprod           # PIN: the preprod EKS cluster name
+    interruptionQueue: mde-eks-preprod     # PIN
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::381491911327:role/karpenter-preprod   # PIN per env

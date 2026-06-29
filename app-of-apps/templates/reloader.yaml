@@ -1,0 +1,31 @@
+{{- /*
+  ArgoCD Application for Stakater Reloader. Wave 0: must be watching before the
+  Dagster control plane comes up so it can roll the webserver/daemon when the
+  workspace ConfigMap changes.
+*/ -}}
+{{- if .Values.reloader.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: reloader
+  namespace: {{ .Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.project }}
+  destination:
+    server: {{ .Values.destinationServer }}
+    namespace: reloader
+  source:
+    repoURL: {{ .Values.repoURL }}
+    targetRevision: {{ .Values.targetRevision }}
+    path: apps/reloader
+    helm:
+      valueFiles:
+        - values-{{ .Values.env }}.yaml
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+{{- end }}

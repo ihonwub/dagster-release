@@ -1,0 +1,46 @@
+# =============================================================================
+# DEV control-plane values.
+#
+# Everything is nested under `dagster:` because the official chart is a SUBCHART
+# of this wrapper (see Chart.yaml). To pass a value to the upstream chart you
+# put it under `dagster:`; to reach the upstream's own subchart you go one level
+# deeper at `dagster.dagster-user-deployments`.
+#
+#   wrapper value path                     -> reaches
+#   -------------------------------------     ----------------------------------
+#   dagster.runLauncher                    -> upstream `dagster` chart
+#   dagster.dagsterWebserver               -> upstream `dagster` chart
+#   dagster.dagster-user-deployments.*     -> upstream's user-deployments subchart
+# =============================================================================
+dagster:
+
+  runLauncher:
+    type: K8sRunLauncher        # each run -> its own K8s Job (pod) the autoscaler grows
+    config:
+      k8sRunLauncher:
+        loadInclusterConfig: true
+
+  # The control plane must NOT deploy or register user code itself.
+  # User code comes ONLY from the tenant ApplicationSet (Repo B's wrapper chart).
+  dagster-user-deployments:
+    enabled: true               # instance still EXPECTS external user code...
+    enableSubchart: false       # ...but THIS release creates NO code-location pods
+    deployments: []             # ...and holds NO central list
+
+  # Read the workspace (the phone book of code locations) from the ConfigMap that
+  # the dagster-workspace chart generates. The webserver/daemon mount this and
+  # learn where every team's gRPC server lives.
+  # >>> VERIFY THIS KEY FOR YOUR PINNED CHART VERSION <<<
+  #   helm show values dagster/dagster --version 1.11.7 | grep -A 30 'workspace:'
+  dagsterWebserver:
+    workspace:
+      externalConfigmap: dagster-workspace
+    annotations:
+      reloader.stakater.com/auto: "true"      # roll the webserver when workspace changes
+
+  dagsterDaemon:
+    annotations:
+      reloader.stakater.com/auto: "true"      # roll the daemon when workspace changes
+
+  postgresql:
+    enabled: false              # use RDS; wire host/creds here (dev RDS instance)

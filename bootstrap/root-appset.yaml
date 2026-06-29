@@ -1,0 +1,72 @@
+# =============================================================================
+# BOOTSTRAP APPLICATIONSET  --  the single entrypoint for EVERY cluster.
+# -----------------------------------------------------------------------------
+# This is the OUTER layer of the app-of-apps pattern. There is exactly ONE of
+# these, committed once, and it is identical on every cluster. It does just one
+# thing: create a single "app-of-apps" Application that renders the umbrella
+# Helm chart in ../app-of-apps with the values file for THIS cluster's env.
+#
+# THE THREE LAYERS:
+#   1. THIS appset            -> creates one Application per cluster
+#   2. app-of-apps/ chart     -> templates one `kind: Application` per workload
+#   3. apps/<chart>           -> the actual workload charts (dagster, etc.)
+#
+# HOW IT KNOWS WHICH ENV IT IS ON (dev vs preprod):
+#   It uses a CLUSTER generator and reads an `env` label off the cluster. Each
+#   cluster's own Argo has its in-cluster entry labeled env=dev or env=preprod,
+#   so the SAME file selects values-dev.yaml on dev and values-preprod.yaml on
+#   preprod -- no per-cluster file, no apply-time parameter.
+#
+#   You set that label ONCE per cluster by creating a cluster Secret for the
+#   in-cluster API server, e.g.:
+#     apiVersion: v1
+#     kind: Secret
+#     metadata:
+#       name: in-cluster
+#       namespace: argocd
+#       labels:
+#         argocd.argoproj.io/secret-type: cluster
+#         env: dev                       # <-- dev cluster; use "preprod" on preprod
+#     stringData:
+#       name: in-cluster
+#       server: https://kubernetes.default.svc
+#       config: '{"tlsClientConfig":{"insecure":false}}'
+#
+# THE ONLY IMPERATIVE STEP:
+#   kubectl apply -f bootstrap/root-appset.yaml      (once, on each cluster)
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: app-of-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    # The cluster generator returns the clusters this Argo manages. We keep only
+    # those carrying an `env` label, so an unlabeled cluster is never targeted.
+    - clusters:
+        selector:
+          matchExpressions:
+            - { key: env, operator: Exists }
+  template:
+    metadata:
+      name: "app-of-apps-{{ .name }}"          # .name = the cluster's name
+    spec:
+      project: data-platform
+      source:
+        repoURL: https://github.com/org/mde-gitops-manifests.git   # PIN to the real repo URL
+        targetRevision: main
+        path: app-of-apps
+        helm:
+          # Pick the env's values file using the cluster's `env` label.
+          # dev cluster   -> app-of-apps/values-dev.yaml
+          # preprod cluster -> app-of-apps/values-preprod.yaml
+          valueFiles:
+            - "values-{{ .metadata.labels.env }}.yaml"
+      destination:
+        server: "{{ .server }}"                 # this cluster
+        namespace: argocd                        # the child Application objects live here
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [CreateNamespace=true]

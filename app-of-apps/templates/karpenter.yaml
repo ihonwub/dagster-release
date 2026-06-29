@@ -1,0 +1,31 @@
+{{- /*
+  ArgoCD Application for Karpenter (node autoscaler). Wave -1: nodes/capacity
+  should be available before workloads schedule. Its clusterName/IRSA differ per
+  env, which is exactly why apps/karpenter has values-dev.yaml / values-preprod.yaml.
+*/ -}}
+{{- if .Values.karpenter.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karpenter
+  namespace: {{ .Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.project }}
+  destination:
+    server: {{ .Values.destinationServer }}
+    namespace: kube-system            # Karpenter v1 installs into kube-system by default
+  source:
+    repoURL: {{ .Values.repoURL }}
+    targetRevision: {{ .Values.targetRevision }}
+    path: apps/karpenter
+    helm:
+      valueFiles:
+        - values-{{ .Values.env }}.yaml
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+{{- end }}

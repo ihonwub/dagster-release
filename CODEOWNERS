@@ -1,0 +1,12 @@
+# Path-based ownership. Platform owns the bootstrap, the app-of-apps chart, and
+# all the workload charts. DS teams own ONLY their own location file.
+# (CODEOWNERS is last-match-wins, so the location lines below override /apps/.)
+
+/bootstrap/                                                      @org/platform-eng
+/app-of-apps/                                                    @org/platform-eng
+/apps/                                                           @org/platform-eng
+/.github/                                                        @org/platform-eng
+
+# DS teams own exactly one file each.
+/apps/dagster-workspace/locations/signals.yaml                   @org/ds-signals
+/apps/dagster-workspace/locations/finance.yaml                   @org/ds-finance

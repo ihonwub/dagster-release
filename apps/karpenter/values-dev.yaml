@@ -1,0 +1,9 @@
+# DEV values for Karpenter. Values nest under the subchart name `karpenter:`.
+# These are the bits that MUST differ per environment (different EKS cluster).
+karpenter:
+  settings:
+    clusterName: eks-workshop               # PIN: the dev EKS cluster name
+    interruptionQueue: eks-workshop         # PIN: the SQS interruption queue
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::381491911327:role/karpenter-dev   # PIN per env

@@ -1,0 +1,6 @@
+# PREPROD values for External Secrets.
+external-secrets:
+  installCRDs: true
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::381491911327:role/external-secrets-preprod   # PIN per env

@@ -1,0 +1,13 @@
+# DEV overrides for the workspace chart. The chart's own values.yaml supplies
+# the defaults; this file only needs to set what differs per environment.
+#
+# Because dev and preprod are SEPARATE clusters that use the SAME namespace names,
+# these usually match values.yaml. They exist so the root ApplicationSet can pass
+# `valueFiles: [values-dev.yaml]` uniformly for every localHelm chart.
+
+# Namespace where the control plane runs and reads the workspace ConfigMap.
+instanceNamespace: dagster
+
+# Code-location pods live in <namespacePrefix>-<name>, e.g. dagster-signals.
+# MUST match the tenant ApplicationSet's destination namespace pattern.
+namespacePrefix: dagster

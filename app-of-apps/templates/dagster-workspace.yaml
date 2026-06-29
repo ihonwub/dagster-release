@@ -1,0 +1,31 @@
+{{- /*
+  ArgoCD Application for the WORKSPACE registry (fan-in). Wave 3: last, after the
+  code-location Services exist. Points at the custom chart apps/dagster-workspace,
+  which globs the team files into the single workspace.yaml ConfigMap.
+*/ -}}
+{{- if .Values.dagsterWorkspace.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dagster-workspace
+  namespace: {{ .Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.project }}
+  destination:
+    server: {{ .Values.destinationServer }}
+    namespace: dagster
+  source:
+    repoURL: {{ .Values.repoURL }}
+    targetRevision: {{ .Values.targetRevision }}
+    path: apps/dagster-workspace
+    helm:
+      valueFiles:
+        - values-{{ .Values.env }}.yaml
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+{{- end }}

@@ -1,0 +1,7 @@
+# Namespace where the Dagster control plane (webserver + daemon) runs and where
+# it reads the workspace ConfigMap from. MUST match the instance's namespace.
+instanceNamespace: dagster
+
+# Code-location pods live in <namespacePrefix>-<location name>, e.g. dagster-signals.
+# MUST match the ApplicationSet's destination namespace pattern.
+namespacePrefix: dagster

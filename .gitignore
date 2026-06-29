@@ -1,0 +1,3 @@
+# downloaded Helm subchart artifacts (Argo refetches from Chart.lock)
+apps/*/charts/
+.scratch/

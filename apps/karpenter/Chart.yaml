@@ -1,0 +1,12 @@
+# Wrapper chart for Karpenter (node autoscaler). The upstream chart is published
+# to a public ECR OCI registry. Our per-env values set the cluster name and IRSA
+# role, which necessarily differ between dev and preprod.
+apiVersion: v2
+name: karpenter
+description: Wrapper around the Karpenter chart.
+type: application
+version: 0.1.0
+dependencies:
+  - name: karpenter
+    version: "1.0.6"                          # PIN
+    repository: oci://public.ecr.aws/karpenter

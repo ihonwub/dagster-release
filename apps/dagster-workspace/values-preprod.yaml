@@ -1,0 +1,4 @@
+# PREPROD overrides for the workspace chart. See values-dev.yaml for what this
+# file is for. Change these only if preprod uses different namespace names.
+instanceNamespace: dagster
+namespacePrefix: dagster

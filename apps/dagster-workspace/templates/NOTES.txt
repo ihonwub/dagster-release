@@ -1,0 +1,10 @@
+dagster-workspace generated a workspace for these locations:
+{{ range $path, $bytes := .Files.Glob "locations/*.yaml" -}}
+{{- $loc := $.Files.Get $path | fromYaml }}
+  - {{ $loc.name }}  ->  dagster-loc-{{ $loc.name }}.{{ $.Values.namespacePrefix }}-{{ $loc.name }}.svc.cluster.local:{{ $loc.port }}
+{{ end }}
+Verify the instance is reading it:
+  kubectl -n {{ .Values.instanceNamespace }} get configmap dagster-workspace -o jsonpath='{.data.workspace\.yaml}'
+
+Then open the Dagster UI -> each location above should load. A red
+"failed to load" on ONE location does not affect the others.

@@ -1,0 +1,35 @@
+{{- /*
+  ArgoCD Application for USER CODE (the fan-out). Wave 2: after the control plane.
+
+  SPECIAL CASE: unlike the other apps, apps/dagster-code-locations is NOT a Helm
+  chart -- it is a RAW manifest (a tenant ApplicationSet whose body is itself
+  Argo `{{ ... }}` templating). If Helm rendered it, Helm would consume those
+  braces. So this Application uses a DIRECTORY source (apply the YAML verbatim);
+  the Argo ApplicationSet controller does the per-team templating afterwards.
+  That is why there is no `helm:` block here.
+*/ -}}
+{{- if .Values.dagsterCodeLocations.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dagster-code-locations
+  namespace: {{ .Values.argocdNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ .Values.project }}
+  destination:
+    server: {{ .Values.destinationServer }}
+    namespace: {{ .Values.argocdNamespace }}   # the tenant ApplicationSet object lives in argocd
+  source:
+    repoURL: {{ .Values.repoURL }}
+    targetRevision: {{ .Values.targetRevision }}
+    path: apps/dagster-code-locations
+    directory:
+      recurse: false
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]
+{{- end }}
