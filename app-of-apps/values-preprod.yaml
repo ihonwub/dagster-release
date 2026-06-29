@@ -4,7 +4,7 @@
 # =============================================================================
 
 env: preprod
-repoURL: https://github.com/org/mde-gitops-manifests.git   # PIN: this repo
+repoURL: https://github.com/ihonwub/dagster-release.git
 targetRevision: main
 project: data-platform
 argocdNamespace: argocd

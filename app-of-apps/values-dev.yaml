@@ -8,7 +8,7 @@
 # =============================================================================
 
 env: dev                                          # -> each app loads values-dev.yaml from its chart
-repoURL: https://github.com/org/mde-gitops-manifests.git   # PIN: this repo
+repoURL: https://github.com/ihonwub/dagster-release.git
 targetRevision: main
 project: data-platform
 argocdNamespace: argocd                           # where the child Application objects live

@@ -55,7 +55,7 @@ spec:
     spec:
       project: data-platform
       source:
-        repoURL: https://github.com/org/mde-gitops-manifests.git   # PIN to the real repo URL
+        repoURL: https://github.com/ihonwub/dagster-release.git
         targetRevision: main
         path: app-of-apps
         helm:

@@ -33,7 +33,7 @@ spec:
   goTemplateOptions: ["missingkey=error"]    # fail fast if a team file omits a required key
   generators:
     - git:
-        repoURL: https://github.com/org/mde-gitops-manifests.git   # PIN to the real repo URL
+        repoURL: https://github.com/ihonwub/dagster-release.git
         revision: main
         files:
           # Each matched team file is parsed; its keys become the params below.
@@ -50,11 +50,11 @@ spec:
         automated: { prune: true, selfHeal: true }
         syncOptions: [CreateNamespace=true, ServerSideApply=true]
       source:
-        # Repo B's published wrapper chart. # PUBLISH this chart to your registry
-        # (OCI/ECR) before bring-up; until then this reference cannot resolve.
-        repoURL: 381491911327.dkr.ecr.us-west-2.amazonaws.com   # OCI registry host
-        chart: dagster-code-location
-        targetRevision: "0.1.0"                # PIN to the published wrapper-chart version
+        # Repo B: the wrapper chart lives at the root of this git repo.
+        # Argo CD pulls it directly from GitHub — no OCI publishing needed.
+        repoURL: https://github.com/ihonwub/dagster-code-location.git
+        targetRevision: main
+        path: "."
         helm:
           # Values handed to the wrapper chart. The wrapper passes
           # `dagster-user-deployments.*` straight through to the official subchart,
