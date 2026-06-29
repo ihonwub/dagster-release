@@ -60,36 +60,34 @@ spec:
           # `dagster-user-deployments.*` straight through to the official subchart,
           # and consumes `networkPolicy.*` in its own template.
           #
-          # NOTE on Helm + subcharts: a wrapper chart cannot TEMPLATE its
-          # subchart's values, so the friendly "team file -> deployments[]"
-          # mapping is done HERE (by the ApplicationSet's Go template engine),
-          # not inside the wrapper.
+          # NOTE: all Go template expressions must be quoted so the YAML parser
+          # does not interpret {{ .field }} as a flow mapping before Argo renders it.
           valuesObject:
             dagster-user-deployments:
               serviceAccount:
                 create: true
-                name: dagster-loc-{{ .name }}
+                name: "dagster-loc-{{ .name }}"
                 annotations:
                   # IRSA: scope each location to its own IAM role (platform-owned prefix).
-                  eks.amazonaws.com/role-arn: arn:aws:iam::381491911327:role/dagster-loc-{{ .name }}
+                  eks.amazonaws.com/role-arn: "arn:aws:iam::381491911327:role/dagster-loc-{{ .name }}"
               deployments:
                 # name = dagster-loc-<name> so the Service DNS the official chart
                 # creates matches the host the workspace registry derives.
-                - name: dagster-loc-{{ .name }}
+                - name: "dagster-loc-{{ .name }}"
                   image:
-                    repository: {{ .image.repository }}
+                    repository: "{{ .image.repository }}"
                     tag: "{{ .image.tag }}"
-                    pullPolicy: {{ .image.pullPolicy }}
+                    pullPolicy: "{{ .image.pullPolicy }}"
                   dagsterApiGrpcArgs:
                     - "--python-module"
-                    - {{ .module }}
-                  port: {{ .port }}
+                    - "{{ .module }}"
+                  port: "{{ .port }}"
                   # Make launched run pods reuse the code server's config/env.
                   includeConfigInLaunchedRuns:
                     enabled: true
             # Inputs the wrapper's NetworkPolicy template needs (see Repo B).
             networkPolicy:
               enabled: true
-              locationName: {{ .name }}
-              port: {{ .port }}
+              locationName: "{{ .name }}"
+              port: "{{ .port }}"
               instanceNamespace: dagster         # control-plane namespace allowed to reach gRPC
