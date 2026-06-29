@@ -35,6 +35,7 @@ dagster:
   dagsterWebserver:
     workspace:
       enabled: true                        # required: tells the chart to use externalConfigmap
+      servers: []                          # clear the default example entry -- must be empty when externalConfigmap is set
       externalConfigmap: dagster-workspace # the ConfigMap our dagster-workspace chart generates
     annotations:
       reloader.stakater.com/auto: "true"      # roll the webserver when workspace changes
