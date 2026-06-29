@@ -80,7 +80,7 @@ spec:
                     tag: "{{ .image.tag }}"
                     pullPolicy: {{ .image.pullPolicy }}
                   dagsterApiGrpcArgs:
-                    - "--python-module"
+                    - "--module-name"
                     - {{ .module }}
                   port: {{ .port }}
                   includeConfigInLaunchedRuns:
