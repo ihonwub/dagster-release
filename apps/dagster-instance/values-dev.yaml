@@ -34,7 +34,8 @@ dagster:
   #   helm show values dagster/dagster --version 1.11.7 | grep -A 30 'workspace:'
   dagsterWebserver:
     workspace:
-      externalConfigmap: dagster-workspace
+      enabled: true                        # required: tells the chart to use externalConfigmap
+      externalConfigmap: dagster-workspace # the ConfigMap our dagster-workspace chart generates
     annotations:
       reloader.stakater.com/auto: "true"      # roll the webserver when workspace changes
 
