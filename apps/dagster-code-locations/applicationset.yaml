@@ -87,16 +87,6 @@ spec:
                   # Make launched run pods reuse the code server's config/env.
                   includeConfigInLaunchedRuns:
                     enabled: true
-                  {{- if .envConfigMaps }}
-                  envConfigMaps:
-                    {{- range .envConfigMaps }}
-                    - name: {{ . }}
-                    {{- end }}
-                  {{- end }}
-                  {{- if .resources }}
-                  resources:
-                    {{- .resources | toYaml | nindent 20 }}
-                  {{- end }}
             # Inputs the wrapper's NetworkPolicy template needs (see Repo B).
             networkPolicy:
               enabled: true
