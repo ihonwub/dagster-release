@@ -78,7 +78,10 @@ spec:
                     - {{ .module }}
                   port: {{ .port }}
                   includeConfigInLaunchedRuns:
-                    enabled: true
+                    # Disabled: the code-server pod itself doesn't need Postgres
+                    # creds -- only run pods do. Run pods launch in the dagster
+                    # namespace where the secret exists.
+                    enabled: false
             networkPolicy:
               enabled: true
               locationName: {{ .name }}
