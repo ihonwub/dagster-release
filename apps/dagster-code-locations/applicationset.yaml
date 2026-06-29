@@ -62,6 +62,12 @@ spec:
           # becomes the ECR URL, etc. No pre-render YAML parse issues.
           values: |
             dagster-user-deployments:
+              global:
+                # Skip DAGSTER_PG_PASSWORD secret injection into the code-server pod.
+                # In our split-namespace design the code-server doesn't need Postgres
+                # credentials -- only run pods do, and those launch in the `dagster`
+                # namespace where the secret already exists.
+                postgresqlAuthWifEnabled: true
               serviceAccount:
                 create: true
                 name: dagster-loc-{{ .name }}
