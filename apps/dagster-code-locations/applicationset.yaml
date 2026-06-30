@@ -56,38 +56,37 @@ spec:
         targetRevision: main
         path: "."
         helm:
-          # `values` (block string) instead of `valuesObject` (parsed YAML).
-          # Argo renders Go templates in this string BEFORE passing to Helm,
-          # so {{ .port }} becomes the integer 4001, {{ .image.repository }}
-          # becomes the ECR URL, etc. No pre-render YAML parse issues.
+          # `values` (block string), NOT `valuesObject`. Argo renders the Go
+          # templates in this string BEFORE handing it to Helm, so the result is
+          # plain valid YAML -- no pre-parse of `{{ }}` as YAML flow mappings.
+          #
+          # DESIGN: the team's locations/<name>.yaml IS a standard upstream
+          # deployment entry. We splat it WHOLE into deployments[], so teams write
+          # normal Dagster YAML and never learn a bespoke schema. Around that entry
+          # the platform sets the things teams must NOT control -- identity (IRSA
+          # service account) and the WIF flag -- as SIBLING keys that cannot collide
+          # with anything inside the deployment entry.
           values: |
             dagster-user-deployments:
               global:
                 # Skip DAGSTER_PG_PASSWORD secret injection into the code-server pod.
-                # In our split-namespace design the code-server doesn't need Postgres
-                # credentials -- only run pods do, and those launch in the `dagster`
-                # namespace where the secret already exists.
+                # The code server doesn't need Postgres creds; only run pods do, and
+                # those launch in the `dagster` namespace where the secret exists.
+                # (This is gated independently of includeConfigInLaunchedRuns, which
+                # we now leave at its upstream default `true` so launched runs still
+                # inherit the location's k8s container_context.)
                 postgresqlAuthWifEnabled: true
               serviceAccount:
                 create: true
                 name: dagster-loc-{{ .name }}
                 annotations:
                   eks.amazonaws.com/role-arn: arn:aws:iam::381491911327:role/dagster-loc-{{ .name }}
+              # Splat the team's entire location file as the one deployment entry.
+              # `omit ... "path"` strips the metadata Argo's git generator injects
+              # (path.path, path.basename, ...) which is NOT a valid deployment field.
+              # `list | toYaml | nindent` turns the single map into a one-item list.
               deployments:
-                - name: dagster-loc-{{ .name }}
-                  image:
-                    repository: {{ .image.repository }}
-                    tag: "{{ .image.tag }}"
-                    pullPolicy: {{ .image.pullPolicy }}
-                  dagsterApiGrpcArgs:
-                    - "--module-name"
-                    - {{ .module }}
-                  port: {{ .port }}
-                  includeConfigInLaunchedRuns:
-                    # Disabled: the code-server pod itself doesn't need Postgres
-                    # creds -- only run pods do. Run pods launch in the dagster
-                    # namespace where the secret exists.
-                    enabled: false
+                {{- list (omit . "path") | toYaml | nindent 16 }}
             networkPolicy:
               enabled: true
               locationName: {{ .name }}

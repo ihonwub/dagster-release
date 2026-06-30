@@ -1,14 +1,25 @@
 # Owned by @org/ds-signals (see /CODEOWNERS). The ONLY file this team edits.
-# Adding a DAG = new code in the image + a new immutable tag here.
-name: signals                              # -> namespace dagster-signals, location_name "signals"
-module: signals_pipeline.definitions       # python module exposing Definitions(...)
-port: 4001                                 # gRPC port the code server listens on
+#
+# This is a STANDARD dagster-user-deployments deployment entry -- write it exactly
+# as the upstream Dagster chart documents it. The platform wraps namespace
+# isolation, IRSA, the NetworkPolicy, and workspace registration AROUND this entry;
+# you don't write any of that. Whatever the upstream chart's `deployments[]` entry
+# supports, you can set here.
+#
+# Two fields are load-bearing for the platform wrapper:
+#   name  -> namespace (dagster-<name>), Service DNS, and workspace location_name
+#   port  -> gRPC port the workspace registry points at
+name: signals
+port: 4001
+dagsterApiGrpcArgs:
+  - -m
+  - signals_pipeline.definitions
 image:
   repository: 381491911327.dkr.ecr.us-west-2.amazonaws.com/dagster-signals
-  tag: "0.1.0"                             # IMMUTABLE -- never 'latest' (CI rejects it)
+  tag: "0.1.0"                              # IMMUTABLE -- never 'latest' (CI rejects it)
   pullPolicy: Always
-# envConfigMaps:                           # optional -- re-enable once a signals-env
-#   - signals-env                          #   ConfigMap exists in the dagster-signals ns
-resources:                                 # optional (chart/instance defaults otherwise)
+resources:
   requests: { cpu: "500m", memory: "1Gi" }
   limits:   { cpu: "2",    memory: "4Gi" }
+# envConfigMaps:                            # uncomment once the signals-env ConfigMap
+#   - name: signals-env                     #   exists in the dagster-signals namespace

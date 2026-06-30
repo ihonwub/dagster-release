@@ -75,9 +75,10 @@ data:
       # ----- {{ $loc.name }} (from {{ base $path }}) -----
       - grpc_server:
           # Stable in-cluster DNS of this location's Service. Convention only:
-          #   service  = dagster-loc-<name>   (set by the official chart)
-          #   namespace = <prefix>-<name>     (ApplicationSet destination)
-          host: dagster-loc-{{ $loc.name }}.{{ $.Values.namespacePrefix }}-{{ $loc.name }}.svc.cluster.local
+          #   service   = <name>            (upstream chart names the Service after
+          #                                  the deployment entry's `name`)
+          #   namespace = <prefix>-<name>   (ApplicationSet destination namespace)
+          host: {{ $loc.name }}.{{ $.Values.namespacePrefix }}-{{ $loc.name }}.svc.cluster.local
           port: {{ $loc.port }}
           location_name: {{ $loc.name }}
     {{- end }}
