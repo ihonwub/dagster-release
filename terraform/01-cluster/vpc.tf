@@ -25,11 +25,7 @@ module "vpc" {
   single_nat_gateway = true # one NAT for cost; use one-per-AZ for real HA
 
   # Tags EKS needs to discover subnets for load balancers.
+  # (General tags come from the provider's default_tags.)
   public_subnet_tags  = { "kubernetes.io/role/elb" = "1" }
   private_subnet_tags = { "kubernetes.io/role/internal-elb" = "1" }
-
-  tags = {
-    "created-by" = "dagster-platform"
-    "env"        = var.env
-  }
 }

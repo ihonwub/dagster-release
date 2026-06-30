@@ -20,7 +20,6 @@ data "aws_iam_policy_document" "ebs_csi_trust" {
 resource "aws_iam_role" "ebs_csi" {
   name               = "${var.cluster_name}-ebs-csi"
   assume_role_policy = data.aws_iam_policy_document.ebs_csi_trust.json
-  tags               = { "created-by" = "dagster-platform", "env" = var.env }
 }
 
 resource "aws_iam_role_policy_attachment" "ebs_csi" {

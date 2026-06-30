@@ -27,3 +27,15 @@ variable "env" {
   type        = string
   default     = "dev"
 }
+
+variable "project" {
+  description = "Project name applied as a default tag to all resources."
+  type        = string
+  default     = "dagster-platform"
+}
+
+variable "owner_email" {
+  description = "Owner email applied as a default tag to all resources."
+  type        = string
+  default     = "ioncloudjourney@gmail.com"
+}

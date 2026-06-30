@@ -52,9 +52,4 @@ module "eks" {
       labels         = { "workshop-default" = "yes" }
     }
   }
-
-  tags = {
-    "created-by" = "dagster-platform"
-    "env"        = var.env
-  }
 }

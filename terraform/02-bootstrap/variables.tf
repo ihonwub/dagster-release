@@ -28,6 +28,18 @@ variable "git_repo_url" {
   default     = "https://github.com/ihonwub/dagster-release.git"
 }
 
+variable "project" {
+  description = "Project name applied as a default tag to all resources."
+  type        = string
+  default     = "dagster-platform"
+}
+
+variable "owner_email" {
+  description = "Owner email applied as a default tag to all resources."
+  type        = string
+  default     = "ioncloudjourney@gmail.com"
+}
+
 variable "argocd_chart_version" {
   description = "argo/argo-cd Helm chart version. Bump as needed; verify the latest at https://github.com/argoproj/argo-helm/releases."
   type        = string

@@ -1,6 +1,15 @@
 provider "aws" {
   region  = var.region
   profile = var.aws_profile
+
+  default_tags {
+    tags = {
+      project    = var.project
+      owner      = var.owner_email
+      env        = var.env
+      managed-by = "terraform"
+    }
+  }
 }
 
 # Point the in-cluster providers at the ALREADY-EXISTING cluster (created by
