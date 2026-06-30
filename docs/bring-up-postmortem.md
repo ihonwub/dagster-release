@@ -1,9 +1,16 @@
 # Bring-Up Postmortem — Dagster on EKS (First Full Deploy)
 
+> **HISTORICAL.** This documents the original **eksctl + manual kubectl** bring-up
+> and every error it hit. The bring-up is now done with **Terraform** (`terraform/`
+> — see `terraform/README.md`), which makes most of these failures structurally
+> impossible (Pod Identity instead of OIDC, EBS CSI role created with the addon,
+> gp3 StorageClass and Argo install all declarative). The `.scratch/cluster.yaml`
+> and `.scratch/storageclass-gp3.yaml` referenced below have been removed. Keep
+> this file for the *why* behind the Terraform design; ignore the eksctl-specific
+> fix commands as current guidance.
+
 This document captures every error hit during the first end-to-end bring-up of
-the Dagster app-of-apps stack on a fresh EKS cluster, and the exact fix for
-each. Read this before a second bring-up — most of these are avoidable with
-the cluster.yaml and values fixes now in place.
+the Dagster app-of-apps stack on a fresh EKS cluster, and the exact fix for each.
 
 ---
 
