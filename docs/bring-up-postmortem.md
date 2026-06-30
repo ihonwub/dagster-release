@@ -218,6 +218,94 @@ dagsterWebserver:
 
 ---
 
+## 10. Cluster created WITHOUT OIDC — every IRSA role dead on arrival
+
+**Symptom:** EBS CSI addon stuck in `CREATING` forever; controller pods
+`CrashLoopBackOff` with no AWS permissions; `eksctl create iamserviceaccount`
+failed: `no IAM OIDC provider associated with cluster`.
+
+**Root cause:** the running cluster was NOT created from our `cluster.yaml`
+(which has `iam.withOIDC: true`). With OIDC disabled, IRSA cannot function —
+`eks.amazonaws.com/role-arn` service-account annotations are silently inert. This
+breaks the EBS CSI driver, the Dagster per-location roles, external-secrets, and
+karpenter all at once. The EBS CSI addon entered a deadlock: it could not go
+ACTIVE because the controller was unhealthy, the controller was unhealthy because
+it had no role, and the role could not attach while the addon was `CREATING`.
+
+**Fix (immediate):**
+```bash
+# 1. Enable OIDC on the existing cluster
+eksctl utils associate-iam-oidc-provider \
+  --cluster <name> --region us-west-2 --approve --profile iamgen
+
+# 2. Create the CSI IRSA role (role-only)
+eksctl create iamserviceaccount \
+  --name ebs-csi-controller-sa --namespace kube-system \
+  --cluster <name> --region us-west-2 \
+  --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy \
+  --role-name <name>-ebs-csi --role-only --approve --profile iamgen
+
+# 3. The addon is wedged in CREATING -- delete and recreate WITH the role
+aws eks delete-addon --cluster-name <name> --addon-name aws-ebs-csi-driver \
+  --no-preserve --region us-west-2 --profile iamgen
+# wait for full deletion, then:
+aws eks create-addon --cluster-name <name> --addon-name aws-ebs-csi-driver \
+  --service-account-role-arn arn:aws:iam::<acct>:role/<name>-ebs-csi \
+  --resolve-conflicts OVERWRITE --region us-west-2 --profile iamgen
+```
+
+**Fix (permanent):** Build the cluster FROM `.scratch/cluster.yaml` (has
+`withOIDC: true`) and VERIFY it took before anything else:
+```bash
+aws eks describe-cluster --name <name> --region us-west-2 --profile iamgen \
+  --query "cluster.identity.oidc.issuer" --output text   # must print an https URL
+```
+
+---
+
+## 11. EBS CSI addon does not create a StorageClass — and `gp2` is the wrong one
+
+**Symptom:** even with the CSI driver healthy, `gp2 (default)` still uses
+provisioner `kubernetes.io/aws-ebs` (the removed in-tree one). PVCs that bind to
+it never provision on EKS 1.23+.
+
+**Root cause:** EKS pre-creates the legacy `gp2` StorageClass with the in-tree
+provisioner. The `aws-ebs-csi-driver` addon installs the driver
+(`ebs.csi.aws.com`) but does NOT create a StorageClass using it. eksctl's
+ClusterConfig also cannot express a StorageClass.
+
+**Fix:** apply a CSI-backed default class and demote `gp2`:
+```bash
+kubectl apply -f .scratch/storageclass-gp3.yaml          # gp3, ebs.csi.aws.com, default
+kubectl patch storageclass gp2 -p \
+  '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+```
+`storageclass-gp3.yaml` is the companion file that MUST be applied after every
+cluster create — it can never live in the eksctl config.
+
+---
+
+## 12. Recreating Postgres → empty DB → webserver 500 `relation "instance_info" does not exist`
+
+**Symptom:** after deleting/recreating the Postgres StatefulSet (e.g. to move it
+onto `gp3`), the Dagster UI returned HTTP 500;
+`psycopg2.errors.UndefinedTable: relation "instance_info" does not exist`.
+
+**Root cause:** the new PVC is a fresh, empty database with no Dagster schema.
+The webserver pod was older than the new Postgres, so it had started against the
+OLD database and was now querying an empty one.
+
+**Fix:** restart the Dagster components so they reconnect and initialize the
+schema on the fresh DB:
+```bash
+kubectl rollout restart deployment/dagster-instance-dagster-webserver -n dagster
+kubectl rollout restart deployment/dagster-instance-daemon -n dagster
+```
+Avoid entirely by building the cluster correctly the first time (EBS CSI + gp3
+working from the start) so Postgres provisions once and is never recreated.
+
+---
+
 ## Lessons for the next bring-up
 
 1. **Use the updated `cluster.yaml`** — it now includes EBS CSI driver (with IRSA
@@ -236,3 +324,16 @@ dagsterWebserver:
 
 5. **Dagster workspace: three required values, not one** — `enabled: true`,
    `servers: []`, and `externalConfigmap: <name>` must all be set together.
+
+6. **Verify OIDC is enabled FIRST** — before installing any addon or bootstrapping
+   Argo, confirm `cluster.identity.oidc.issuer` is a real URL. Without it every
+   IRSA role is dead and the EBS CSI addon deadlocks. This is the single highest-
+   leverage pre-check.
+
+7. **Apply `storageclass-gp3.yaml` after every cluster create** — the CSI addon
+   does not bring a StorageClass and the eksctl config cannot hold one. The
+   default `gp2` is the wrong (in-tree) provisioner until you demote it.
+
+8. **Never recreate Postgres on a running instance unless you mean it** — a fresh
+   PVC = empty schema = webserver 500s until the components restart. Get the
+   cluster right the first time so Postgres provisions exactly once.

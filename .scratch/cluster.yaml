@@ -1,3 +1,14 @@
+# =============================================================================
+# EKS cluster config for the Dagster platform.
+#
+# IMPORTANT: a default StorageClass canNOT be expressed here -- eksctl has no
+# StorageClass field, and the EBS CSI addon does not create one. EKS only
+# pre-creates the broken in-tree `gp2`. After the cluster + addons are up, apply
+# the companion manifest and demote gp2:
+#     kubectl apply -f .scratch/storageclass-gp3.yaml
+#     kubectl patch storageclass gp2 -p \
+#       '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+# =============================================================================
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 availabilityZones:
@@ -7,12 +18,14 @@ availabilityZones:
 metadata:
   name: ${EKS_CLUSTER_NAME}
   region: ${AWS_REGION}
-  version: "1.33"
+  version: "1.34"
   tags:
     created-by: dagster-platform
     env: dev
 iam:
-  withOIDC: true
+  withOIDC: true        # MUST be true -- every IRSA role (EBS CSI, Dagster
+                        # locations, external-secrets) depends on it. Verify
+                        # after create: `aws eks describe-cluster ... identity.oidc`
 vpc:
   cidr: 10.42.0.0/16
   clusterEndpoints:
@@ -25,7 +38,8 @@ managedNodeGroups:
     maxSize: 6
     instanceType: m5.large
     privateNetworking: true
-    releaseVersion: "1.33.0-20250704"
+    # No releaseVersion pin -- let the node AMI track the cluster version (1.34)
+    # so an upgrade doesn't leave nodes stranded on an older minor.
     updateConfig:
       maxUnavailablePercentage: 50
     labels:
@@ -48,7 +62,8 @@ addons:
   # EBS CSI driver — REQUIRED on EKS 1.23+.
   # The in-tree aws-ebs provisioner is removed; without this addon any PVC
   # (bundled Postgres, etc.) will stay Pending indefinitely.
-  # wellKnownPolicies auto-creates the IRSA role — no manual aws iam needed.
+  # wellKnownPolicies auto-creates the IRSA role — but ONLY works if withOIDC
+  # is true above. If OIDC is missing the controller CrashLoops with no perms.
   - name: aws-ebs-csi-driver
     version: latest
     resolveConflicts: overwrite
