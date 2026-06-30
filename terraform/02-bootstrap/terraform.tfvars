@@ -1,0 +1,5 @@
+region       = "us-west-2"
+aws_profile  = "iamgen"
+cluster_name = "dagster-tutorial"
+env          = "dev"
+git_repo_url = "https://github.com/ihonwub/dagster-release.git"

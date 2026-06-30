@@ -1,0 +1,17 @@
+# Terraform local state, plans, and provider plugins -- never commit these.
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+# Provider lock files -- not tracked per project preference.
+.terraform.lock.hcl
+# Keep terraform.tfvars tracked here (no secrets in it -- account id is public,
+# no keys). If you ever put secrets in tfvars, switch to *.auto.tfvars + ignore.
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc

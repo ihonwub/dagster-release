@@ -1,0 +1,5 @@
+region          = "us-west-2"
+aws_profile     = "iamgen"
+cluster_name    = "dagster-tutorial"
+cluster_version = "1.33"
+env             = "dev"
